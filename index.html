@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balon Patlatma Oyunu</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            text-align: center;
+            width: 100%;
+        }
+
+        .title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+            z-index: 2;
+            position: relative;
+        }
+
+        .start-button {
+            padding: 10px 20px;
+            font-size: 20px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            z-index: 1;
+            position: relative;
+        }
+
+        .game-area {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #f0f0f0;
+        }
+
+        .balloon-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .balloon {
+            position: absolute;
+            width: 50px;
+            height: 70px;
+            background-size: cover;
+            cursor: pointer;
+            border-radius: 50%;
+            background-repeat: no-repeat;
+            background-position: center;
+            z-index: 1;
+        }
+
+        .balloon::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            width: 2px;
+            height: 20px;
+            background: #333;
+        }
+
+        .balloon.pop {
+            animation: popEffect 0.5s;
+            background-image: url('https://w7.pngwing.com/pngs/832/350/png-transparent-splash-of-blood-bloodstain-pattern-analysis-blood-love-miscellaneous-text-thumbnail.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        @keyframes popEffect {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+
+        .timer {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            color: #333;
+            z-index: 1;
+        }
+
+        .result {
+            text-align: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .fixed-title {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            color: #333;
+            z-index: 2;
+        }
+
+        .username-input {
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 18px;
+        }
+
+        .high-scores {
+            margin-top: 20px;
+            list-style-type: none;
+            padding: 0;
+            font-size: 18px;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 id="gameTitle" class="title">Genç Safa Aksa Çoçuk Şenliğine Hoşgeldiniz...</h1>
+        <input id="usernameInput" class="username-input" type="text" placeholder="Kullanıcı Adınızı Giriniz">
+        <button id="startButton" class="start-button">Oyuna Başla</button>
+        <ul id="highScoresListInitial" class="high-scores"></ul>
+        <div id="gameArea" class="game-area hidden">
+            <div id="balloonContainer" class="balloon-container"></div>
+            <div id="timer" class="timer">15</div>
+            <h1 id="fixedGameTitle" class="fixed-title hidden">Katil İsrail</h1>
+        </div>
+        <div id="result" class="result hidden">
+            <p>Puanınız: <span id="score"></span></p>
+            <button id="restartButton" class="start-button">Tekrar Oyna</button>
+            <ul id="highScoresList" class="high-scores"></ul>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+        import { getDatabase, ref, set, get, query, orderByChild, limitToLast } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBxxU07jSoGm7cyzw9CtXxWHkGq737I4lY",
+            authDomain: "aksacocuk-c9672.firebaseapp.com",
+            projectId: "aksacocuk-c9672",
+            storageBucket: "aksacocuk-c9672.appspot.com",
+            messagingSenderId: "821907961816",
+            appId: "1:821907961816:web:1c8a4843a665da948f24ad"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const startButton = document.getElementById('startButton');
+        const gameArea = document.getElementById('gameArea');
+        const balloonContainer = document.getElementById('balloonContainer');
+        const timerElement = document.getElementById('timer');
+        const result = document.getElementById('result');
+        const scoreElement = document.getElementById('score');
+        const restartButton = document.getElementById('restartButton');
+        const gameTitle = document.getElementById('gameTitle');
+        const fixedGameTitle = document.getElementById('fixedGameTitle');
+        const usernameInput = document.getElementById('usernameInput');
+        const highScoresList = document.getElementById('highScoresList');
+        const highScoresListInitial = document.getElementById('highScoresListInitial');
+
+        const balloonImages = [
+            'https://pbs.twimg.com/media/F8qs3H1XAAAWYzv.jpg:large',
+            'https://haberkurulu.com/wp-content/uploads/2020/02/kanli-israil-bayragi.png'
+        ];
+
+        let score = 0;
+        let timeLeft = 15;
+        let gameInterval;
+
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', restartGame);
+
+        function startGame() {
+            const username = usernameInput.value.trim();
+            if (!username) {
+                alert("Lütfen kullanıcı adınızı giriniz.");
+                return;
+            }
+
+            startButton.classList.add('hidden');
+            usernameInput.classList.add('hidden');
+            highScoresListInitial.classList.add('hidden');
+            gameArea.classList.remove('hidden');
+            result.classList.add('hidden');
+            gameTitle.classList.add('hidden');
+            fixedGameTitle.classList.remove('hidden');
+            score = 0;
+            timeLeft = 15;
+            updateTimer();
+            generateBalloons();
+            gameInterval = setInterval(updateGame, 1000);
+        }
+
+        function restartGame() {
+            result.classList.add('hidden');
+            startButton.classList.remove('hidden');
+            usernameInput.classList.remove('hidden');
+            highScoresListInitial.classList.remove('hidden');
+            gameTitle.classList.remove('hidden');
+            fixedGameTitle.classList.add('hidden');
+        }
+
+        function updateGame() {
+            if (timeLeft > 0) {
+                timeLeft--;
+                updateTimer();
+            } else {
+                endGame();
+            }
+        }
+
+        function updateTimer() {
+            timerElement.textContent = timeLeft;
+        }
+
+        function endGame() {
+            clearInterval(gameInterval);
+            gameArea.classList.add('hidden');
+            result.classList.remove('hidden');
+            scoreElement.textContent = score;
+            saveScore(usernameInput.value.trim(), score);
+            fetchHighScores().then(scores => updateHighScoresList(scores, highScoresList));
+        }
+
+        function generateBalloons() {
+            balloonContainer.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                createBalloon();
+            }
+        }
+
+        function createBalloon() {
+            const balloon = document.createElement('div');
+            balloon.className = 'balloon';
+            balloon.style.left = `${Math.random() * 90}vw`;
+            balloon.style.top = `${10 + Math.random() * 70}vh`;
+            balloon.style.backgroundImage = `url('${balloonImages[Math.floor(Math.random() * balloonImages.length)]}')`;
+            balloon.addEventListener('click', popBalloon);
+            balloonContainer.appendChild(balloon);
+        }
+
+        function popBalloon(event) {
+            score++;
+            const balloon = event.target;
+            balloon.classList.add('pop');
+            setTimeout(() => {
+                balloonContainer.removeChild(balloon);
+                createBalloon();
+            }, 500);
+        }
+
+        async function saveScore(username, score) {
+            const dbRef = ref(db, 'scores/' + username);
+            await set(dbRef, {
+                username: username,
+                score: score
+            });
+        }
+
+        async function fetchHighScores() {
+            const scoresRef = query(ref(db, 'scores'), orderByChild('score'), limitToLast(5));
+            const snapshot = await get(scoresRef);
+
+            if (snapshot.exists()) {
+                const scores = [];
+                snapshot.forEach((childSnapshot) => {
+                    scores.push(childSnapshot.val());
+                });
+                scores.sort((a, b) => b.score - a.score);
+                return scores;
+            } else {
+                return [];
+            }
+        }
+
+        function updateHighScoresList(scores, listElement) {
+            listElement.innerHTML = '';
+            scores.forEach((scoreData, index) => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${index + 1}. ${scoreData.username}: ${scoreData.score}`;
+                listElement.appendChild(listItem);
+            });
+        }
+
+        // Fetch initial high scores when the page loads
+        window.onload = async () => {
+            const scores = await fetchHighScores();
+            updateHighScoresList(scores, highScoresListInitial);
+        };
+    </script>
+</body>
+
+</html>
